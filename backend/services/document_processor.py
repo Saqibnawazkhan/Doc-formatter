@@ -51,6 +51,9 @@ class DocumentProcessor:
 
         doc = Document(source_path)
 
+        # IMPORTANT: Clean markdown formatting FIRST before any other processing
+        self._clean_markdown_formatting(doc)
+
         # Apply formatting options
         if options.text:
             self._apply_text_formatting(doc, options.text)
@@ -73,6 +76,117 @@ class DocumentProcessor:
         doc.save(formatted_path)
 
         return formatted_file_id
+
+    def _clean_markdown_formatting(self, doc: Document):
+        """Clean markdown-style formatting characters from the document"""
+        for paragraph in doc.paragraphs:
+            text = paragraph.text
+
+            # Skip empty paragraphs
+            if not text.strip():
+                continue
+
+            # Detect markdown headings and convert them
+            # ### Heading 3
+            if text.strip().startswith('###'):
+                # Remove the ### prefix
+                cleaned_text = text.strip()[3:].strip()
+                # Remove ** wrapping if present
+                cleaned_text = re.sub(r'^\*\*(.+?)\*\*:?$', r'\1', cleaned_text)
+                cleaned_text = re.sub(r'^\*\*(.+?)\*\*', r'\1', cleaned_text)
+
+                # Clear existing runs and set new text
+                for run in paragraph.runs:
+                    run.text = ''
+                if paragraph.runs:
+                    paragraph.runs[0].text = cleaned_text
+                else:
+                    paragraph.add_run(cleaned_text)
+
+                # Apply Heading 3 style
+                try:
+                    paragraph.style = 'Heading 3'
+                except:
+                    pass
+                continue
+
+            # ## Heading 2
+            elif text.strip().startswith('##'):
+                cleaned_text = text.strip()[2:].strip()
+                cleaned_text = re.sub(r'^\*\*(.+?)\*\*:?$', r'\1', cleaned_text)
+                cleaned_text = re.sub(r'^\*\*(.+?)\*\*', r'\1', cleaned_text)
+
+                for run in paragraph.runs:
+                    run.text = ''
+                if paragraph.runs:
+                    paragraph.runs[0].text = cleaned_text
+                else:
+                    paragraph.add_run(cleaned_text)
+
+                try:
+                    paragraph.style = 'Heading 2'
+                except:
+                    pass
+                continue
+
+            # # Heading 1
+            elif text.strip().startswith('# '):
+                cleaned_text = text.strip()[1:].strip()
+                cleaned_text = re.sub(r'^\*\*(.+?)\*\*:?$', r'\1', cleaned_text)
+                cleaned_text = re.sub(r'^\*\*(.+?)\*\*', r'\1', cleaned_text)
+
+                for run in paragraph.runs:
+                    run.text = ''
+                if paragraph.runs:
+                    paragraph.runs[0].text = cleaned_text
+                else:
+                    paragraph.add_run(cleaned_text)
+
+                try:
+                    paragraph.style = 'Heading 1'
+                except:
+                    pass
+                continue
+
+            # Clean markdown formatting from runs
+            for run in paragraph.runs:
+                if not run.text:
+                    continue
+
+                original_text = run.text
+                cleaned_text = original_text
+
+                # Remove markdown bold markers (**text**)
+                # Handle full-line bold like **AXONITY NETWORKS**
+                cleaned_text = re.sub(r'^\*\*(.+?)\*\*$', r'\1', cleaned_text)
+                # Handle inline bold
+                cleaned_text = re.sub(r'\*\*(.+?)\*\*', r'\1', cleaned_text)
+
+                # Remove markdown italic markers (*text* or _text_)
+                cleaned_text = re.sub(r'\*(.+?)\*', r'\1', cleaned_text)
+                cleaned_text = re.sub(r'_(.+?)_', r'\1', cleaned_text)
+
+                # Remove markdown strikethrough (~~text~~)
+                cleaned_text = re.sub(r'~~(.+?)~~', r'\1', cleaned_text)
+
+                # Remove markdown code markers (`code`)
+                cleaned_text = re.sub(r'`(.+?)`', r'\1', cleaned_text)
+
+                # Remove horizontal rules (---, ___, ***)
+                if re.match(r'^[\-_*]{3,}$', cleaned_text.strip()):
+                    cleaned_text = ''
+
+                # Apply cleaned text
+                if cleaned_text != original_text:
+                    run.text = cleaned_text
+
+            # Remove paragraphs that are now empty or just horizontal rules
+            if paragraph.text.strip() in ['', '---', '___', '***']:
+                try:
+                    p = paragraph._element
+                    p.getparent().remove(p)
+                except:
+                    pass
 
     def _apply_text_formatting(self, doc: Document, options):
         """Apply text formatting to all paragraphs"""
@@ -355,19 +469,33 @@ class DocumentProcessor:
                                 matched_heading = 'Heading 3'
                                 paragraph.style = 'Heading 3'
 
+                # Apply heading configuration
                 if matched_heading and matched_heading in heading_config:
                     config = heading_config[matched_heading]
+
+                    # Ensure paragraph has at least one run
+                    if not paragraph.runs:
+                        paragraph.add_run(paragraph.text)
+
+                    # Apply formatting to all runs in the heading
                     for run in paragraph.runs:
+                        # Always apply size
                         run.font.size = Pt(config['size'])
+
+                        # Apply font family if specified
                         if options.heading_font_family:
                             run.font.name = options.heading_font_family.value
+
+                        # Apply bold setting
                         run.font.bold = config['bold']
 
+                        # Apply color if specified
                         if config['color']:
                             color = self._parse_color(config['color'])
                             if color:
                                 run.font.color.rgb = color
-            except Exception:
+            except Exception as e:
+                # Log but continue processing other paragraphs
                 continue
 
         # Create Table of Contents if requested
@@ -377,16 +505,42 @@ class DocumentProcessor:
     def _create_table_of_contents(self, doc: Document):
         """Create a table of contents at the beginning of the document"""
         try:
-            # Add TOC at the beginning
+            # Check if TOC already exists - if the first paragraph is "Table of Contents", skip
+            if doc.paragraphs and doc.paragraphs[0].text.strip() == "Table of Contents":
+                # TOC already exists, just update the field
+                return
+
+            # Count headings to determine if TOC is needed
+            heading_count = 0
+            for paragraph in doc.paragraphs:
+                if paragraph.style and 'heading' in paragraph.style.name.lower():
+                    heading_count += 1
+                    if heading_count >= 2:  # Only create TOC if we have at least 2 headings
+                        break
+
+            if heading_count < 2:
+                # Not enough headings to warrant a TOC
+                return
+
+            # Create TOC paragraph
             toc_paragraph = doc.add_paragraph()
             doc._element.body.insert(0, toc_paragraph._element)
 
-            # Add TOC title
-            toc_paragraph.text = "Table of Contents"
+            # Clear any default text and set title
+            toc_paragraph.clear()
+            toc_run = toc_paragraph.add_run("Table of Contents")
+            toc_run.bold = True
+            toc_run.font.size = Pt(16)
             toc_paragraph.style = 'Heading 1'
 
+            # Add spacing after TOC title
+            doc.add_paragraph()
+
             # Add TOC field
-            run = toc_paragraph.add_run()
+            toc_field_paragraph = doc.add_paragraph()
+            doc._element.body.insert(2, toc_field_paragraph._element)
+
+            run = toc_field_paragraph.add_run()
             fldChar1 = OxmlElement('w:fldChar')
             fldChar1.set(qn('w:fldCharType'), 'begin')
 
