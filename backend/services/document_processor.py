@@ -212,7 +212,7 @@ class DocumentProcessor:
                     except Exception:
                         continue
 
-        if options.remove_extra_spaces or options.clean_copied_text:
+        if options.clean_copied_text:
             self._remove_extra_spaces(doc)
 
         if options.fix_alignment_issues:
