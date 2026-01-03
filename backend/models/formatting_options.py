@@ -79,8 +79,14 @@ class DocumentStructureOptions(BaseModel):
     create_toc: Optional[bool] = None
     heading_font_family: Optional[FontFamily] = None
     h1_size: Optional[int] = None
+    h1_color: Optional[str] = None
+    h1_bold: Optional[bool] = None
     h2_size: Optional[int] = None
+    h2_color: Optional[str] = None
+    h2_bold: Optional[bool] = None
     h3_size: Optional[int] = None
+    h3_color: Optional[str] = None
+    h3_bold: Optional[bool] = None
 
 
 class CleanupOptions(BaseModel):

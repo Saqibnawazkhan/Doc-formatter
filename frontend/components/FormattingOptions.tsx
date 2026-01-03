@@ -586,57 +586,143 @@ export default function FormattingOptions({
                 </select>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="label">H1 Size (pt)</label>
-                  <input
-                    type="number"
-                    className="input"
-                    placeholder="24"
-                    min="8"
-                    max="72"
-                    value={options.structure?.h1_size || ''}
-                    onChange={(e) =>
-                      updateStructureOption(
-                        'h1_size',
-                        e.target.value ? parseInt(e.target.value) : undefined
-                      )
-                    }
-                  />
+              <div className="space-y-4">
+                {/* H1 Options */}
+                <div className="border border-gray-200 rounded-lg p-3">
+                  <h4 className="font-medium text-sm text-gray-700 mb-2">Heading 1 (H1)</h4>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="label text-xs">Size (pt)</label>
+                      <input
+                        type="number"
+                        className="input"
+                        placeholder="24"
+                        min="8"
+                        max="72"
+                        value={options.structure?.h1_size || ''}
+                        onChange={(e) =>
+                          updateStructureOption(
+                            'h1_size',
+                            e.target.value ? parseInt(e.target.value) : undefined
+                          )
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="label text-xs">Color</label>
+                      <input
+                        type="color"
+                        value={options.structure?.h1_color || '#000000'}
+                        onChange={(e) => updateStructureOption('h1_color', e.target.value)}
+                        className="w-full h-10 rounded border border-gray-300 cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <label className="flex items-center space-x-2 cursor-pointer pb-2">
+                        <input
+                          type="checkbox"
+                          className="checkbox"
+                          checked={options.structure?.h1_bold !== false}
+                          onChange={(e) =>
+                            updateStructureOption('h1_bold', e.target.checked)
+                          }
+                        />
+                        <span className="text-sm font-bold">Bold</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="label">H2 Size (pt)</label>
-                  <input
-                    type="number"
-                    className="input"
-                    placeholder="20"
-                    min="8"
-                    max="72"
-                    value={options.structure?.h2_size || ''}
-                    onChange={(e) =>
-                      updateStructureOption(
-                        'h2_size',
-                        e.target.value ? parseInt(e.target.value) : undefined
-                      )
-                    }
-                  />
+
+                {/* H2 Options */}
+                <div className="border border-gray-200 rounded-lg p-3">
+                  <h4 className="font-medium text-sm text-gray-700 mb-2">Heading 2 (H2)</h4>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="label text-xs">Size (pt)</label>
+                      <input
+                        type="number"
+                        className="input"
+                        placeholder="20"
+                        min="8"
+                        max="72"
+                        value={options.structure?.h2_size || ''}
+                        onChange={(e) =>
+                          updateStructureOption(
+                            'h2_size',
+                            e.target.value ? parseInt(e.target.value) : undefined
+                          )
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="label text-xs">Color</label>
+                      <input
+                        type="color"
+                        value={options.structure?.h2_color || '#000000'}
+                        onChange={(e) => updateStructureOption('h2_color', e.target.value)}
+                        className="w-full h-10 rounded border border-gray-300 cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <label className="flex items-center space-x-2 cursor-pointer pb-2">
+                        <input
+                          type="checkbox"
+                          className="checkbox"
+                          checked={options.structure?.h2_bold !== false}
+                          onChange={(e) =>
+                            updateStructureOption('h2_bold', e.target.checked)
+                          }
+                        />
+                        <span className="text-sm font-bold">Bold</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="label">H3 Size (pt)</label>
-                  <input
-                    type="number"
-                    className="input"
-                    placeholder="16"
-                    min="8"
-                    max="72"
-                    value={options.structure?.h3_size || ''}
-                    onChange={(e) =>
-                      updateStructureOption(
-                        'h3_size',
-                        e.target.value ? parseInt(e.target.value) : undefined
-                      )
-                    }
-                  />
+
+                {/* H3 Options */}
+                <div className="border border-gray-200 rounded-lg p-3">
+                  <h4 className="font-medium text-sm text-gray-700 mb-2">Heading 3 (H3)</h4>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="label text-xs">Size (pt)</label>
+                      <input
+                        type="number"
+                        className="input"
+                        placeholder="16"
+                        min="8"
+                        max="72"
+                        value={options.structure?.h3_size || ''}
+                        onChange={(e) =>
+                          updateStructureOption(
+                            'h3_size',
+                            e.target.value ? parseInt(e.target.value) : undefined
+                          )
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="label text-xs">Color</label>
+                      <input
+                        type="color"
+                        value={options.structure?.h3_color || '#000000'}
+                        onChange={(e) => updateStructureOption('h3_color', e.target.value)}
+                        className="w-full h-10 rounded border border-gray-300 cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <label className="flex items-center space-x-2 cursor-pointer pb-2">
+                        <input
+                          type="checkbox"
+                          className="checkbox"
+                          checked={options.structure?.h3_bold !== false}
+                          onChange={(e) =>
+                            updateStructureOption('h3_bold', e.target.checked)
+                          }
+                        />
+                        <span className="text-sm font-bold">Bold</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </div>
             </>

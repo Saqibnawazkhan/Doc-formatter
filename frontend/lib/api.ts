@@ -65,8 +65,14 @@ export interface FormattingOptions {
     create_toc?: boolean;
     heading_font_family?: string;
     h1_size?: number;
+    h1_color?: string;
+    h1_bold?: boolean;
     h2_size?: number;
+    h2_color?: string;
+    h2_bold?: boolean;
     h3_size?: number;
+    h3_color?: string;
+    h3_bold?: boolean;
   };
   cleanup?: {
     remove_inconsistent_fonts?: boolean;

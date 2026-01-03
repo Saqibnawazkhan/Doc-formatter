@@ -288,20 +288,38 @@ class DocumentProcessor:
 
     def _normalize_headings(self, doc: Document, options):
         """Normalize heading styles"""
-        heading_sizes = {
-            'Heading 1': options.h1_size or 24,
-            'Heading 2': options.h2_size or 20,
-            'Heading 3': options.h3_size or 16,
+        heading_config = {
+            'Heading 1': {
+                'size': options.h1_size or 24,
+                'color': options.h1_color,
+                'bold': options.h1_bold if options.h1_bold is not None else True,
+            },
+            'Heading 2': {
+                'size': options.h2_size or 20,
+                'color': options.h2_color,
+                'bold': options.h2_bold if options.h2_bold is not None else True,
+            },
+            'Heading 3': {
+                'size': options.h3_size or 16,
+                'color': options.h3_color,
+                'bold': options.h3_bold if options.h3_bold is not None else True,
+            },
         }
 
         for paragraph in doc.paragraphs:
             try:
-                if paragraph.style and paragraph.style.name in heading_sizes:
+                if paragraph.style and paragraph.style.name in heading_config:
+                    config = heading_config[paragraph.style.name]
                     for run in paragraph.runs:
-                        run.font.size = Pt(heading_sizes[paragraph.style.name])
+                        run.font.size = Pt(config['size'])
                         if options.heading_font_family:
                             run.font.name = options.heading_font_family.value
-                        run.font.bold = True
+                        run.font.bold = config['bold']
+
+                        if config['color']:
+                            color = self._parse_color(config['color'])
+                            if color:
+                                run.font.color.rgb = color
             except Exception:
                 continue
 
