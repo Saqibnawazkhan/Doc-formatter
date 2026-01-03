@@ -333,6 +333,28 @@ class DocumentProcessor:
                         matched_heading = heading_name
                         break
 
+                # If no style match, try to detect heading by formatting
+                if not matched_heading and paragraph.runs:
+                    # Check if paragraph looks like a heading (short, bold, larger font)
+                    first_run = paragraph.runs[0] if paragraph.runs else None
+                    if first_run and first_run.font:
+                        is_bold = first_run.font.bold
+                        font_size = first_run.font.size.pt if first_run.font.size else 12
+                        text_length = len(paragraph.text.strip())
+
+                        # Detect as heading if bold and short text
+                        if is_bold and text_length < 100:
+                            if font_size >= 16:
+                                matched_heading = 'Heading 1'
+                                # Apply heading style to paragraph
+                                paragraph.style = 'Heading 1'
+                            elif font_size >= 14:
+                                matched_heading = 'Heading 2'
+                                paragraph.style = 'Heading 2'
+                            elif font_size >= 12:
+                                matched_heading = 'Heading 3'
+                                paragraph.style = 'Heading 3'
+
                 if matched_heading and matched_heading in heading_config:
                     config = heading_config[matched_heading]
                     for run in paragraph.runs:
@@ -347,6 +369,47 @@ class DocumentProcessor:
                                 run.font.color.rgb = color
             except Exception:
                 continue
+
+        # Create Table of Contents if requested
+        if options.create_toc:
+            self._create_table_of_contents(doc)
+
+    def _create_table_of_contents(self, doc: Document):
+        """Create a table of contents at the beginning of the document"""
+        try:
+            # Add TOC at the beginning
+            toc_paragraph = doc.add_paragraph()
+            doc._element.body.insert(0, toc_paragraph._element)
+
+            # Add TOC title
+            toc_paragraph.text = "Table of Contents"
+            toc_paragraph.style = 'Heading 1'
+
+            # Add TOC field
+            run = toc_paragraph.add_run()
+            fldChar1 = OxmlElement('w:fldChar')
+            fldChar1.set(qn('w:fldCharType'), 'begin')
+
+            instrText = OxmlElement('w:instrText')
+            instrText.set(qn('xml:space'), 'preserve')
+            instrText.text = 'TOC \\o "1-3" \\h \\z \\u'
+
+            fldChar2 = OxmlElement('w:fldChar')
+            fldChar2.set(qn('w:fldCharType'), 'separate')
+
+            fldChar3 = OxmlElement('w:fldChar')
+            fldChar3.set(qn('w:fldCharType'), 'end')
+
+            run._r.append(fldChar1)
+            run._r.append(instrText)
+            run._r.append(fldChar2)
+            run._r.append(fldChar3)
+
+            # Add a page break after TOC
+            doc.add_page_break()
+        except Exception as e:
+            # If TOC creation fails, just continue
+            pass
 
     def _add_page_numbers(self, section, position: Optional[PageNumberPosition]):
         """Add page numbers to document"""
