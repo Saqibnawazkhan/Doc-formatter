@@ -78,28 +78,35 @@ class DocumentProcessor:
         """Apply text formatting to all paragraphs"""
         for paragraph in doc.paragraphs:
             for run in paragraph.runs:
-                if options.font_family:
-                    run.font.name = options.font_family.value
-                    # Set font for East Asian characters
-                    r = run._element
-                    r.rPr.rFonts.set(qn('w:eastAsia'), options.font_family.value)
+                try:
+                    if options.font_family:
+                        run.font.name = options.font_family.value
+                        # Set font for East Asian characters safely
+                        r = run._element
+                        rPr = r.rPr
+                        if rPr is not None:
+                            rFonts = rPr.rFonts
+                            if rFonts is not None:
+                                rFonts.set(qn('w:eastAsia'), options.font_family.value)
 
-                if options.font_size:
-                    run.font.size = Pt(options.font_size)
+                    if options.font_size:
+                        run.font.size = Pt(options.font_size)
 
-                if options.font_color:
-                    color = self._parse_color(options.font_color)
-                    if color:
-                        run.font.color.rgb = color
+                    if options.font_color:
+                        color = self._parse_color(options.font_color)
+                        if color:
+                            run.font.color.rgb = color
 
-                if options.bold is not None:
-                    run.font.bold = options.bold
+                    if options.bold is not None:
+                        run.font.bold = options.bold
 
-                if options.italic is not None:
-                    run.font.italic = options.italic
+                    if options.italic is not None:
+                        run.font.italic = options.italic
 
-                if options.underline is not None:
-                    run.font.underline = options.underline
+                    if options.underline is not None:
+                        run.font.underline = options.underline
+                except Exception:
+                    continue
 
             if options.line_spacing:
                 self._set_line_spacing(paragraph, options.line_spacing)
@@ -113,10 +120,13 @@ class DocumentProcessor:
                 for cell in row.cells:
                     for paragraph in cell.paragraphs:
                         for run in paragraph.runs:
-                            if options.font_family:
-                                run.font.name = options.font_family.value
-                            if options.font_size:
-                                run.font.size = Pt(options.font_size)
+                            try:
+                                if options.font_family:
+                                    run.font.name = options.font_family.value
+                                if options.font_size:
+                                    run.font.size = Pt(options.font_size)
+                            except Exception:
+                                continue
 
     def _apply_paragraph_formatting(self, doc: Document, options):
         """Apply paragraph formatting"""
@@ -194,18 +204,19 @@ class DocumentProcessor:
     def _apply_cleanup(self, doc: Document, options):
         """Apply cleanup and standardization"""
         if options.remove_inconsistent_fonts and options.normalize_formatting:
-            # Apply consistent font to entire document
             default_font = "Calibri"
             for paragraph in doc.paragraphs:
                 for run in paragraph.runs:
-                    run.font.name = default_font
+                    try:
+                        run.font.name = default_font
+                    except Exception:
+                        continue
 
         if options.remove_extra_spaces or options.clean_copied_text:
             self._remove_extra_spaces(doc)
 
         if options.fix_alignment_issues:
             for paragraph in doc.paragraphs:
-                # Reset to left alignment if no specific alignment set
                 if paragraph.paragraph_format.alignment is None:
                     paragraph.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
@@ -251,10 +262,11 @@ class DocumentProcessor:
         """Remove extra spaces from text"""
         for paragraph in doc.paragraphs:
             for run in paragraph.runs:
-                # Replace multiple spaces with single space
-                run.text = re.sub(r' +', ' ', run.text)
-                # Remove leading/trailing spaces
-                run.text = run.text.strip()
+                try:
+                    run.text = re.sub(r' +', ' ', run.text)
+                    run.text = run.text.strip()
+                except Exception:
+                    continue
 
     def _remove_blank_lines(self, doc: Document):
         """Remove consecutive blank paragraphs"""
@@ -268,8 +280,11 @@ class DocumentProcessor:
             prev_blank = is_blank
 
         for paragraph in paragraphs_to_remove:
-            p = paragraph._element
-            p.getparent().remove(p)
+            try:
+                p = paragraph._element
+                p.getparent().remove(p)
+            except Exception:
+                continue
 
     def _normalize_headings(self, doc: Document, options):
         """Normalize heading styles"""
@@ -280,19 +295,21 @@ class DocumentProcessor:
         }
 
         for paragraph in doc.paragraphs:
-            if paragraph.style.name in heading_sizes:
-                for run in paragraph.runs:
-                    run.font.size = Pt(heading_sizes[paragraph.style.name])
-                    if options.heading_font_family:
-                        run.font.name = options.heading_font_family.value
-                    run.font.bold = True
+            try:
+                if paragraph.style and paragraph.style.name in heading_sizes:
+                    for run in paragraph.runs:
+                        run.font.size = Pt(heading_sizes[paragraph.style.name])
+                        if options.heading_font_family:
+                            run.font.name = options.heading_font_family.value
+                        run.font.bold = True
+            except Exception:
+                continue
 
     def _add_page_numbers(self, section, position: Optional[PageNumberPosition]):
         """Add page numbers to document"""
         if position is None:
             position = PageNumberPosition.BOTTOM_CENTER
 
-        # Determine if header or footer based on position
         is_header = position.value.startswith("top")
 
         if is_header:
@@ -302,13 +319,11 @@ class DocumentProcessor:
 
         target.is_linked_to_previous = False
 
-        # Clear existing content or get first paragraph
         if target.paragraphs:
             paragraph = target.paragraphs[0]
         else:
             paragraph = target.add_paragraph()
 
-        # Set alignment
         if "left" in position.value:
             paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
         elif "center" in position.value:
@@ -316,7 +331,6 @@ class DocumentProcessor:
         elif "right" in position.value:
             paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
-        # Add page number field
         run = paragraph.add_run()
         fldChar1 = OxmlElement('w:fldChar')
         fldChar1.set(qn('w:fldCharType'), 'begin')
@@ -335,7 +349,6 @@ class DocumentProcessor:
         """Get a text preview of the document"""
         file_path = self.get_file_path(file_id)
         if not file_path:
-            # Try formatted version
             formatted_path = os.path.join(self.upload_dir, f"{file_id}_formatted.docx")
             if os.path.exists(formatted_path):
                 file_path = formatted_path
@@ -350,7 +363,7 @@ class DocumentProcessor:
                 content.append(paragraph.text)
 
         return {
-            "content": "\n\n".join(content[:50]),  # First 50 paragraphs
+            "content": "\n\n".join(content[:50]),
             "page_count": len(doc.sections),
             "paragraph_count": len(doc.paragraphs),
         }
@@ -361,7 +374,6 @@ class DocumentProcessor:
         if file_path and os.path.exists(file_path):
             os.remove(file_path)
 
-        # Also try to delete formatted version
         formatted_path = os.path.join(self.upload_dir, f"{file_id}_formatted.docx")
         if os.path.exists(formatted_path):
             os.remove(formatted_path)
