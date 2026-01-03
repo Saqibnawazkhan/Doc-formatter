@@ -198,7 +198,15 @@ class DocumentProcessor:
 
     def _apply_structure_formatting(self, doc: Document, options):
         """Apply document structure formatting"""
-        if options.normalize_headings:
+        # Apply heading formatting if normalize_headings is checked OR if any heading options are set
+        has_heading_options = (
+            options.h1_size or options.h1_color or options.h1_bold is not None or
+            options.h2_size or options.h2_color or options.h2_bold is not None or
+            options.h3_size or options.h3_color or options.h3_bold is not None or
+            options.heading_font_family
+        )
+
+        if options.normalize_headings or has_heading_options:
             self._normalize_headings(doc, options)
 
     def _apply_cleanup(self, doc: Document, options):
@@ -306,10 +314,27 @@ class DocumentProcessor:
             },
         }
 
+        # Add alternative heading style names
+        style_mappings = {
+            'Heading 1': ['Heading 1', 'heading 1', 'Title', 'Heading1', 'Titre 1', 'Título 1'],
+            'Heading 2': ['Heading 2', 'heading 2', 'Subtitle', 'Heading2', 'Titre 2', 'Título 2'],
+            'Heading 3': ['Heading 3', 'heading 3', 'Heading3', 'Titre 3', 'Título 3'],
+        }
+
         for paragraph in doc.paragraphs:
             try:
-                if paragraph.style and paragraph.style.name in heading_config:
-                    config = heading_config[paragraph.style.name]
+                if not paragraph.style:
+                    continue
+
+                # Find which heading level this style matches
+                matched_heading = None
+                for heading_name, style_names in style_mappings.items():
+                    if paragraph.style.name in style_names:
+                        matched_heading = heading_name
+                        break
+
+                if matched_heading and matched_heading in heading_config:
+                    config = heading_config[matched_heading]
                     for run in paragraph.runs:
                         run.font.size = Pt(config['size'])
                         if options.heading_font_family:
