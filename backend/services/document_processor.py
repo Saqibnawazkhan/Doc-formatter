@@ -16,6 +16,10 @@ from models.formatting_options import (
     PageSize,
     FontFamily,
     PageNumberPosition,
+    UnderlineStyle,
+    HighlightColor,
+    ListStyle,
+    BorderStyle,
 )
 
 
@@ -219,6 +223,33 @@ class DocumentProcessor:
 
                     if options.underline is not None:
                         run.font.underline = options.underline
+
+                    # New text formatting options
+                    if options.strikethrough is not None:
+                        run.font.strike = options.strikethrough
+
+                    if options.double_strikethrough is not None:
+                        run.font.double_strike = options.double_strikethrough
+
+                    if options.superscript is not None:
+                        run.font.superscript = options.superscript
+
+                    if options.subscript is not None:
+                        run.font.subscript = options.subscript
+
+                    if options.all_caps is not None:
+                        run.font.all_caps = options.all_caps
+
+                    if options.small_caps is not None:
+                        run.font.small_caps = options.small_caps
+
+                    if options.highlight_color and options.highlight_color != HighlightColor.NONE:
+                        run.font.highlight_color = self._get_highlight_color(options.highlight_color)
+
+                    if options.character_spacing is not None:
+                        # Character spacing in twips (1/20 of a point)
+                        run.font.spacing = Pt(options.character_spacing)
+
                 except Exception:
                     continue
 
@@ -239,20 +270,48 @@ class DocumentProcessor:
                                     run.font.name = options.font_family.value
                                 if options.font_size:
                                     run.font.size = Pt(options.font_size)
+                                if options.strikethrough is not None:
+                                    run.font.strike = options.strikethrough
+                                if options.highlight_color and options.highlight_color != HighlightColor.NONE:
+                                    run.font.highlight_color = self._get_highlight_color(options.highlight_color)
                             except Exception:
                                 continue
+
+    def _get_highlight_color(self, color: HighlightColor):
+        """Convert HighlightColor enum to WD_COLOR_INDEX"""
+        from docx.enum.text import WD_COLOR_INDEX
+        color_map = {
+            HighlightColor.YELLOW: WD_COLOR_INDEX.YELLOW,
+            HighlightColor.GREEN: WD_COLOR_INDEX.BRIGHT_GREEN,
+            HighlightColor.CYAN: WD_COLOR_INDEX.TURQUOISE,
+            HighlightColor.MAGENTA: WD_COLOR_INDEX.PINK,
+            HighlightColor.BLUE: WD_COLOR_INDEX.BLUE,
+            HighlightColor.RED: WD_COLOR_INDEX.RED,
+            HighlightColor.DARK_BLUE: WD_COLOR_INDEX.DARK_BLUE,
+            HighlightColor.DARK_CYAN: WD_COLOR_INDEX.TEAL,
+            HighlightColor.DARK_GREEN: WD_COLOR_INDEX.GREEN,
+            HighlightColor.DARK_MAGENTA: WD_COLOR_INDEX.VIOLET,
+            HighlightColor.DARK_RED: WD_COLOR_INDEX.DARK_RED,
+            HighlightColor.DARK_YELLOW: WD_COLOR_INDEX.DARK_YELLOW,
+            HighlightColor.GRAY_25: WD_COLOR_INDEX.GRAY_25,
+            HighlightColor.GRAY_50: WD_COLOR_INDEX.GRAY_50,
+            HighlightColor.BLACK: WD_COLOR_INDEX.BLACK,
+        }
+        return color_map.get(color, None)
 
     def _apply_paragraph_formatting(self, doc: Document, options):
         """Apply paragraph formatting"""
         for paragraph in doc.paragraphs:
             pf = paragraph.paragraph_format
 
+            # Apply spacing (uses defaults if not changed by user)
             if options.spacing_before is not None:
                 pf.space_before = Pt(options.spacing_before)
 
             if options.spacing_after is not None:
                 pf.space_after = Pt(options.spacing_after)
 
+            # Apply indentation (uses defaults if not changed by user)
             if options.indent_left is not None:
                 pf.left_indent = Inches(options.indent_left)
 
@@ -262,23 +321,126 @@ class DocumentProcessor:
             if options.first_line_indent is not None:
                 pf.first_line_indent = Inches(options.first_line_indent)
 
+            # Hanging indent (negative first line indent)
+            if options.hanging_indent is not None and options.hanging_indent > 0:
+                pf.first_line_indent = Inches(-options.hanging_indent)
+
+            # Page break options
+            if options.keep_lines_together is not None:
+                pf.keep_together = options.keep_lines_together
+
+            if options.keep_with_next is not None:
+                pf.keep_with_next = options.keep_with_next
+
+            if options.page_break_before is not None:
+                pf.page_break_before = options.page_break_before
+
+            if options.widow_control is not None:
+                pf.widow_control = options.widow_control
+
+            # Apply paragraph background/shading
+            if options.background_color:
+                self._apply_paragraph_shading(paragraph, options.background_color)
+
+            # Apply paragraph borders
+            if options.border_style and options.border_style != BorderStyle.NONE:
+                self._apply_paragraph_border(paragraph, options)
+
         if options.remove_extra_spaces:
             self._remove_extra_spaces(doc)
 
         if options.remove_blank_lines:
             self._remove_blank_lines(doc)
 
+    def _apply_paragraph_shading(self, paragraph, color_str: str):
+        """Apply background shading to a paragraph"""
+        try:
+            color = self._parse_color(color_str)
+            if not color:
+                return
+
+            p = paragraph._element
+            pPr = p.get_or_add_pPr()
+
+            # Create shading element
+            shd = OxmlElement('w:shd')
+            shd.set(qn('w:val'), 'clear')
+            shd.set(qn('w:color'), 'auto')
+            shd.set(qn('w:fill'), color_str.replace('#', ''))
+            pPr.append(shd)
+        except Exception:
+            pass
+
+    def _apply_paragraph_border(self, paragraph, options):
+        """Apply borders to a paragraph"""
+        try:
+            border_style_map = {
+                BorderStyle.SINGLE: 'single',
+                BorderStyle.DOUBLE: 'double',
+                BorderStyle.DOTTED: 'dotted',
+                BorderStyle.DASHED: 'dashed',
+                BorderStyle.THICK: 'thick',
+            }
+
+            style = border_style_map.get(options.border_style, 'single')
+            color = options.border_color.replace('#', '') if options.border_color else '000000'
+            width = int((options.border_width or 1) * 8)  # Convert points to eighths of a point
+
+            p = paragraph._element
+            pPr = p.get_or_add_pPr()
+
+            # Create borders element
+            pBdr = OxmlElement('w:pBdr')
+
+            for border_name in ['top', 'left', 'bottom', 'right']:
+                border = OxmlElement(f'w:{border_name}')
+                border.set(qn('w:val'), style)
+                border.set(qn('w:sz'), str(width))
+                border.set(qn('w:space'), '1')
+                border.set(qn('w:color'), color)
+                pBdr.append(border)
+
+            pPr.append(pBdr)
+        except Exception:
+            pass
+
     def _apply_page_formatting(self, doc: Document, options):
         """Apply page formatting to all sections"""
         for section in doc.sections:
+            # Page size with extended options
             if options.page_size:
-                if options.page_size == PageSize.A4:
-                    section.page_width = Inches(8.27)
-                    section.page_height = Inches(11.69)
-                elif options.page_size == PageSize.LETTER:
-                    section.page_width = Inches(8.5)
-                    section.page_height = Inches(11)
+                page_sizes = {
+                    PageSize.A4: (8.27, 11.69),
+                    PageSize.LETTER: (8.5, 11),
+                    PageSize.LEGAL: (8.5, 14),
+                    PageSize.A3: (11.69, 16.54),
+                    PageSize.A5: (5.83, 8.27),
+                    PageSize.EXECUTIVE: (7.25, 10.5),
+                }
+                if options.page_size in page_sizes:
+                    width, height = page_sizes[options.page_size]
+                    section.page_width = Inches(width)
+                    section.page_height = Inches(height)
 
+            # Custom page dimensions
+            if options.custom_width:
+                section.page_width = Inches(options.custom_width)
+            if options.custom_height:
+                section.page_height = Inches(options.custom_height)
+
+            # Page orientation
+            if options.orientation:
+                if options.orientation.lower() == 'landscape':
+                    section.orientation = WD_ORIENT.LANDSCAPE
+                    # Swap width and height for landscape
+                    if section.page_width < section.page_height:
+                        section.page_width, section.page_height = section.page_height, section.page_width
+                elif options.orientation.lower() == 'portrait':
+                    section.orientation = WD_ORIENT.PORTRAIT
+                    if section.page_width > section.page_height:
+                        section.page_width, section.page_height = section.page_height, section.page_width
+
+            # Margins
             if options.margin_top is not None:
                 section.top_margin = Inches(options.margin_top)
 
@@ -291,6 +453,21 @@ class DocumentProcessor:
             if options.margin_right is not None:
                 section.right_margin = Inches(options.margin_right)
 
+            if options.gutter is not None:
+                section.gutter = Inches(options.gutter)
+
+            # Header/Footer distances
+            if options.header_distance is not None:
+                section.header_distance = Inches(options.header_distance)
+
+            if options.footer_distance is not None:
+                section.footer_distance = Inches(options.footer_distance)
+
+            # Different first page header/footer
+            if options.different_first_page is not None:
+                section.different_first_page_header_footer = options.different_first_page
+
+            # Header text
             if options.header_text:
                 header = section.header
                 header.is_linked_to_previous = False
@@ -299,6 +476,7 @@ class DocumentProcessor:
                 else:
                     header.add_paragraph(options.header_text)
 
+            # Footer text
             if options.footer_text:
                 footer = section.footer
                 footer.is_linked_to_previous = False
@@ -307,8 +485,25 @@ class DocumentProcessor:
                 else:
                     footer.add_paragraph(options.footer_text)
 
+            # Page numbers
             if options.page_numbers:
                 self._add_page_numbers(section, options.page_number_position)
+
+            # Multiple columns
+            if options.columns and options.columns > 1:
+                self._set_columns(section, options.columns, options.column_spacing)
+
+    def _set_columns(self, section, num_columns: int, spacing: float = None):
+        """Set the number of columns for a section"""
+        try:
+            sectPr = section._sectPr
+            cols = OxmlElement('w:cols')
+            cols.set(qn('w:num'), str(num_columns))
+            if spacing:
+                cols.set(qn('w:space'), str(int(spacing * 1440)))  # Convert inches to twips
+            sectPr.append(cols)
+        except Exception:
+            pass
 
     def _apply_structure_formatting(self, doc: Document, options):
         """Apply document structure formatting"""

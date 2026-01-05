@@ -26,6 +26,15 @@ const fontFamilies = [
   'Verdana',
   'Helvetica',
   'Courier New',
+  'Tahoma',
+  'Trebuchet MS',
+  'Palatino Linotype',
+  'Garamond',
+  'Comic Sans MS',
+  'Impact',
+  'Lucida Console',
+  'Cambria',
+  'Century Gothic',
 ];
 
 const fontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72];
@@ -35,6 +44,8 @@ const lineSpacings = [
   { value: '1.15', label: '1.15' },
   { value: '1.5', label: '1.5' },
   { value: '2.0', label: 'Double (2.0)' },
+  { value: '2.5', label: '2.5' },
+  { value: '3.0', label: 'Triple (3.0)' },
 ];
 
 const textAlignments = [
@@ -45,8 +56,12 @@ const textAlignments = [
 ];
 
 const pageSizes = [
-  { value: 'A4', label: 'A4' },
-  { value: 'Letter', label: 'Letter' },
+  { value: 'A4', label: 'A4 (8.27" x 11.69")' },
+  { value: 'Letter', label: 'Letter (8.5" x 11")' },
+  { value: 'Legal', label: 'Legal (8.5" x 14")' },
+  { value: 'A3', label: 'A3 (11.69" x 16.54")' },
+  { value: 'A5', label: 'A5 (5.83" x 8.27")' },
+  { value: 'Executive', label: 'Executive (7.25" x 10.5")' },
 ];
 
 const pageNumberPositions = [
@@ -56,6 +71,36 @@ const pageNumberPositions = [
   { value: 'bottom_left', label: 'Bottom Left' },
   { value: 'bottom_center', label: 'Bottom Center' },
   { value: 'bottom_right', label: 'Bottom Right' },
+];
+
+const highlightColors = [
+  { value: 'none', label: 'None' },
+  { value: 'yellow', label: 'Yellow' },
+  { value: 'green', label: 'Green' },
+  { value: 'cyan', label: 'Cyan' },
+  { value: 'magenta', label: 'Magenta' },
+  { value: 'blue', label: 'Blue' },
+  { value: 'red', label: 'Red' },
+  { value: 'darkBlue', label: 'Dark Blue' },
+  { value: 'darkGreen', label: 'Dark Green' },
+  { value: 'darkRed', label: 'Dark Red' },
+  { value: 'lightGray', label: 'Light Gray' },
+  { value: 'darkGray', label: 'Dark Gray' },
+];
+
+const borderStyles = [
+  { value: 'none', label: 'None' },
+  { value: 'single', label: 'Single' },
+  { value: 'double', label: 'Double' },
+  { value: 'dotted', label: 'Dotted' },
+  { value: 'dashed', label: 'Dashed' },
+  { value: 'thick', label: 'Thick' },
+];
+
+const orientations = [
+  { value: '', label: 'Keep original' },
+  { value: 'portrait', label: 'Portrait' },
+  { value: 'landscape', label: 'Landscape' },
 ];
 
 interface SectionProps {
@@ -222,7 +267,40 @@ export default function FormattingOptions({
             </select>
           </div>
 
-          <div className="flex items-center space-x-6 pt-6">
+          <div>
+            <label className="label">Highlight Color</label>
+            <select
+              className="select"
+              value={options.text?.highlight_color || ''}
+              onChange={(e) => updateTextOption('highlight_color', e.target.value || undefined)}
+            >
+              <option value="">None</option>
+              {highlightColors.map((color) => (
+                <option key={color.value} value={color.value}>
+                  {color.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="label">Character Spacing (pt)</label>
+            <input
+              type="number"
+              className="input"
+              placeholder="0"
+              min="-5"
+              max="50"
+              step="0.5"
+              value={options.text?.character_spacing || ''}
+              onChange={(e) =>
+                updateTextOption('character_spacing', e.target.value ? parseFloat(e.target.value) : undefined)
+              }
+            />
+          </div>
+
+          {/* Text Style Checkboxes - Row 1 */}
+          <div className="md:col-span-2 flex flex-wrap items-center gap-4 pt-4">
             <label className="flex items-center space-x-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -252,6 +330,59 @@ export default function FormattingOptions({
               />
               <span className="underline">Underline</span>
             </label>
+
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="checkbox"
+                checked={options.text?.strikethrough || false}
+                onChange={(e) => updateTextOption('strikethrough', e.target.checked || undefined)}
+              />
+              <span className="line-through">Strikethrough</span>
+            </label>
+          </div>
+
+          {/* Text Style Checkboxes - Row 2 */}
+          <div className="md:col-span-2 flex flex-wrap items-center gap-4">
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="checkbox"
+                checked={options.text?.superscript || false}
+                onChange={(e) => updateTextOption('superscript', e.target.checked || undefined)}
+              />
+              <span>Superscript<sup>x</sup></span>
+            </label>
+
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="checkbox"
+                checked={options.text?.subscript || false}
+                onChange={(e) => updateTextOption('subscript', e.target.checked || undefined)}
+              />
+              <span>Subscript<sub>x</sub></span>
+            </label>
+
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="checkbox"
+                checked={options.text?.all_caps || false}
+                onChange={(e) => updateTextOption('all_caps', e.target.checked || undefined)}
+              />
+              <span className="uppercase text-sm">All Caps</span>
+            </label>
+
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="checkbox"
+                checked={options.text?.small_caps || false}
+                onChange={(e) => updateTextOption('small_caps', e.target.checked || undefined)}
+              />
+              <span style={{ fontVariant: 'small-caps' }}>Small Caps</span>
+            </label>
           </div>
         </div>
       </Section>
@@ -262,100 +393,256 @@ export default function FormattingOptions({
         icon={<AlignLeft className="w-5 h-5 text-primary-600" />}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="label">Spacing Before (pt)</label>
-            <input
-              type="number"
-              className="input"
-              placeholder="0"
-              min="0"
-              max="100"
-              value={options.paragraph?.spacing_before || ''}
-              onChange={(e) =>
-                updateParagraphOption(
-                  'spacing_before',
-                  e.target.value ? parseInt(e.target.value) : undefined
-                )
-              }
-            />
+          {/* Spacing Section */}
+          <div className="md:col-span-2">
+            <h4 className="font-medium text-sm text-gray-700 mb-2">Spacing</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Spacing Before (pt)</label>
+                <input
+                  type="number"
+                  className="input"
+                  placeholder="0 (default)"
+                  min="0"
+                  max="100"
+                  value={options.paragraph?.spacing_before ?? ''}
+                  onChange={(e) =>
+                    updateParagraphOption(
+                      'spacing_before',
+                      e.target.value !== '' ? parseInt(e.target.value) : 0
+                    )
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="label">Spacing After (pt)</label>
+                <input
+                  type="number"
+                  className="input"
+                  placeholder="8 (default)"
+                  min="0"
+                  max="100"
+                  value={options.paragraph?.spacing_after ?? ''}
+                  onChange={(e) =>
+                    updateParagraphOption(
+                      'spacing_after',
+                      e.target.value !== '' ? parseInt(e.target.value) : 8
+                    )
+                  }
+                />
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label className="label">Spacing After (pt)</label>
-            <input
-              type="number"
-              className="input"
-              placeholder="0"
-              min="0"
-              max="100"
-              value={options.paragraph?.spacing_after || ''}
-              onChange={(e) =>
-                updateParagraphOption(
-                  'spacing_after',
-                  e.target.value ? parseInt(e.target.value) : undefined
-                )
-              }
-            />
+          {/* Indentation Section */}
+          <div className="md:col-span-2">
+            <h4 className="font-medium text-sm text-gray-700 mb-2">Indentation (inches)</h4>
+            <div className="grid grid-cols-4 gap-4">
+              <div>
+                <label className="label">Left</label>
+                <input
+                  type="number"
+                  className="input"
+                  placeholder="0"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  value={options.paragraph?.indent_left ?? ''}
+                  onChange={(e) =>
+                    updateParagraphOption(
+                      'indent_left',
+                      e.target.value !== '' ? parseFloat(e.target.value) : 0
+                    )
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="label">Right</label>
+                <input
+                  type="number"
+                  className="input"
+                  placeholder="0"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  value={options.paragraph?.indent_right ?? ''}
+                  onChange={(e) =>
+                    updateParagraphOption(
+                      'indent_right',
+                      e.target.value !== '' ? parseFloat(e.target.value) : 0
+                    )
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="label">First Line</label>
+                <input
+                  type="number"
+                  className="input"
+                  placeholder="0"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  value={options.paragraph?.first_line_indent ?? ''}
+                  onChange={(e) =>
+                    updateParagraphOption(
+                      'first_line_indent',
+                      e.target.value !== '' ? parseFloat(e.target.value) : 0
+                    )
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="label">Hanging</label>
+                <input
+                  type="number"
+                  className="input"
+                  placeholder="0"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  value={options.paragraph?.hanging_indent || ''}
+                  onChange={(e) =>
+                    updateParagraphOption(
+                      'hanging_indent',
+                      e.target.value ? parseFloat(e.target.value) : undefined
+                    )
+                  }
+                />
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label className="label">Left Indent (inches)</label>
-            <input
-              type="number"
-              className="input"
-              placeholder="0"
-              min="0"
-              max="5"
-              step="0.1"
-              value={options.paragraph?.indent_left || ''}
-              onChange={(e) =>
-                updateParagraphOption(
-                  'indent_left',
-                  e.target.value ? parseFloat(e.target.value) : undefined
-                )
-              }
-            />
+          {/* Border Section */}
+          <div className="md:col-span-2">
+            <h4 className="font-medium text-sm text-gray-700 mb-2">Paragraph Border</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="label">Border Style</label>
+                <select
+                  className="select"
+                  value={options.paragraph?.border_style || ''}
+                  onChange={(e) => updateParagraphOption('border_style', e.target.value || undefined)}
+                >
+                  {borderStyles.map((style) => (
+                    <option key={style.value} value={style.value}>
+                      {style.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="label">Border Color</label>
+                <input
+                  type="color"
+                  value={options.paragraph?.border_color || '#000000'}
+                  onChange={(e) => updateParagraphOption('border_color', e.target.value)}
+                  className="w-full h-10 rounded border border-gray-300 cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <label className="label">Border Width (pt)</label>
+                <input
+                  type="number"
+                  className="input"
+                  placeholder="1"
+                  min="0.5"
+                  max="10"
+                  step="0.5"
+                  value={options.paragraph?.border_width || ''}
+                  onChange={(e) =>
+                    updateParagraphOption(
+                      'border_width',
+                      e.target.value ? parseFloat(e.target.value) : undefined
+                    )
+                  }
+                />
+              </div>
+            </div>
           </div>
 
+          {/* Background Color */}
           <div>
-            <label className="label">Right Indent (inches)</label>
-            <input
-              type="number"
-              className="input"
-              placeholder="0"
-              min="0"
-              max="5"
-              step="0.1"
-              value={options.paragraph?.indent_right || ''}
-              onChange={(e) =>
-                updateParagraphOption(
-                  'indent_right',
-                  e.target.value ? parseFloat(e.target.value) : undefined
-                )
-              }
-            />
+            <label className="label">Background Color</label>
+            <div className="flex space-x-2">
+              <input
+                type="color"
+                value={options.paragraph?.background_color || '#ffffff'}
+                onChange={(e) => updateParagraphOption('background_color', e.target.value === '#ffffff' ? undefined : e.target.value)}
+                className="w-10 h-10 rounded border border-gray-300 cursor-pointer"
+              />
+              <input
+                type="text"
+                placeholder="None"
+                value={options.paragraph?.background_color || ''}
+                onChange={(e) => updateParagraphOption('background_color', e.target.value || undefined)}
+                className="input flex-1"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="label">First Line Indent (inches)</label>
-            <input
-              type="number"
-              className="input"
-              placeholder="0"
-              min="0"
-              max="5"
-              step="0.1"
-              value={options.paragraph?.first_line_indent || ''}
-              onChange={(e) =>
-                updateParagraphOption(
-                  'first_line_indent',
-                  e.target.value ? parseFloat(e.target.value) : undefined
-                )
-              }
-            />
+          {/* Page Break Options */}
+          <div className="md:col-span-2">
+            <h4 className="font-medium text-sm text-gray-700 mb-2">Page Break Options</h4>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={options.paragraph?.keep_lines_together || false}
+                  onChange={(e) =>
+                    updateParagraphOption('keep_lines_together', e.target.checked || undefined)
+                  }
+                />
+                <span>Keep lines together</span>
+              </label>
+
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={options.paragraph?.keep_with_next || false}
+                  onChange={(e) =>
+                    updateParagraphOption('keep_with_next', e.target.checked || undefined)
+                  }
+                />
+                <span>Keep with next</span>
+              </label>
+
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={options.paragraph?.page_break_before || false}
+                  onChange={(e) =>
+                    updateParagraphOption('page_break_before', e.target.checked || undefined)
+                  }
+                />
+                <span>Page break before</span>
+              </label>
+
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={options.paragraph?.widow_control !== false}
+                  onChange={(e) =>
+                    updateParagraphOption('widow_control', e.target.checked)
+                  }
+                />
+                <span>Widow/Orphan control</span>
+              </label>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-6 pt-6">
+          {/* Cleanup Options */}
+          <div className="md:col-span-2 flex items-center space-x-6 pt-4 border-t">
             <label className="flex items-center space-x-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -404,6 +691,53 @@ export default function FormattingOptions({
               ))}
             </select>
           </div>
+
+          <div>
+            <label className="label">Orientation</label>
+            <select
+              className="select"
+              value={options.page?.orientation || ''}
+              onChange={(e) => updatePageOption('orientation', e.target.value || undefined)}
+            >
+              {orientations.map((orient) => (
+                <option key={orient.value} value={orient.value}>
+                  {orient.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="label">Columns</label>
+            <select
+              className="select"
+              value={options.page?.columns || ''}
+              onChange={(e) => updatePageOption('columns', e.target.value ? parseInt(e.target.value) : undefined)}
+            >
+              <option value="">1 (default)</option>
+              <option value="2">2 Columns</option>
+              <option value="3">3 Columns</option>
+              <option value="4">4 Columns</option>
+            </select>
+          </div>
+
+          {options.page?.columns && options.page.columns > 1 && (
+            <div>
+              <label className="label">Column Spacing (inches)</label>
+              <input
+                type="number"
+                className="input"
+                placeholder="0.5"
+                min="0"
+                max="2"
+                step="0.1"
+                value={options.page?.column_spacing || ''}
+                onChange={(e) =>
+                  updatePageOption('column_spacing', e.target.value ? parseFloat(e.target.value) : undefined)
+                }
+              />
+            </div>
+          )}
 
           <div className="md:col-span-2">
             <label className="label">Margins (inches)</label>
