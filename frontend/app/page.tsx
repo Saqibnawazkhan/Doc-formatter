@@ -63,7 +63,7 @@ function HomeContent() {
       id: file.file_id,
       name: file.filename,
       date: new Date().toISOString(),
-      size: file.file_size,
+      size: file.size,
     };
     const updated = [newFile, ...recentFiles.filter(f => f.id !== file.file_id)].slice(0, 10);
     setRecentFiles(updated);
