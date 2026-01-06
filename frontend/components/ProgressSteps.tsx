@@ -14,6 +14,7 @@ interface Step {
 }
 
 interface ProgressStepsProps {
+  steps?: { label: string; description: string }[];
   currentStep: number;
   variant?: 'horizontal' | 'vertical';
 }
@@ -45,7 +46,19 @@ const steps: Step[] = [
   },
 ];
 
-export default function ProgressSteps({ currentStep, variant = 'horizontal' }: ProgressStepsProps) {
+export default function ProgressSteps({ steps: externalSteps, currentStep, variant = 'horizontal' }: ProgressStepsProps) {
+  // Use external steps if provided, otherwise use default internal steps
+  const displaySteps = externalSteps
+    ? externalSteps.map((s, i) => ({
+        id: `step-${i}`,
+        label: s.label,
+        description: s.description,
+        icon: i === 0 ? <Upload className="w-5 h-5" />
+            : i === 1 ? <Settings className="w-5 h-5" />
+            : i === 2 ? <Wand2 className="w-5 h-5" />
+            : <Download className="w-5 h-5" />
+      }))
+    : steps;
   const getStepStatus = (stepIndex: number): StepStatus => {
     if (stepIndex < currentStep) return 'completed';
     if (stepIndex === currentStep) return 'current';
@@ -55,7 +68,7 @@ export default function ProgressSteps({ currentStep, variant = 'horizontal' }: P
   if (variant === 'vertical') {
     return (
       <div className="flex flex-col gap-4">
-        {steps.map((step, index) => {
+        {displaySteps.map((step, index) => {
           const status = getStepStatus(index);
           return (
             <motion.div
@@ -95,7 +108,7 @@ export default function ProgressSteps({ currentStep, variant = 'horizontal' }: P
                     step.icon
                   )}
                 </motion.div>
-                {index < steps.length - 1 && (
+                {index < displaySteps.length - 1 && (
                   <div className={`w-0.5 h-16 mt-2 transition-colors duration-300 ${
                     status === 'completed' ? 'bg-green-500' : 'bg-gray-200'
                   }`} />
@@ -128,11 +141,11 @@ export default function ProgressSteps({ currentStep, variant = 'horizontal' }: P
         <motion.div
           className="absolute top-5 left-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
           initial={{ width: '0%' }}
-          animate={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
+          animate={{ width: `${(currentStep / (displaySteps.length - 1)) * 100}%` }}
           transition={{ duration: 0.5, ease: 'easeInOut' }}
         />
 
-        {steps.map((step, index) => {
+        {displaySteps.map((step, index) => {
           const status = getStepStatus(index);
           return (
             <motion.div
